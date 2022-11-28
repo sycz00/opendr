@@ -20,13 +20,21 @@ class MultiObjectTask(PointNavFixedTask):
 
     def __init__(self, env):
         super(MultiObjectTask, self).__init__(env)
+
+
         self.target_dist_min = self.config.get("target_dist_min", 1.0)
         self.target_dist_max = self.config.get("target_dist_max", 10.0)
         self.num_tar_objects = self.config.get("tar_objects", 6.0)
         self.polar_to_geodesic = self.config.get("polar_to_geodesic", False)
 
-        self.replace_objects = self.config.get("replace_objects", True)
+        self.replace_objects = self.config.get("replace_objects", True) if not self.config.get('evaluate',False) else False
+
         self.resample_episode_prob = self.config.get("resample_episode_prob", 0.15)
+
+        self.test_demo = self.config.get("test_demo", False)
+        if self.test_demo:
+            #accelerate demo tests
+            self.termination_conditions[1].max_step = 500
 
         self.current_target_ind = 0
         self.prev_target_ind = 0
@@ -184,6 +192,10 @@ class MultiObjectTask(PointNavFixedTask):
         print("COLLISIONS LINKS:", self.remove_collision_links)
         # input()
 
+    def load_door_proxy_material(self):
+        self.forbidden_door_sem_ids = []
+        self.door_sem_ids = []
+        
     def load_door_material(self, env):
 
         self.door_sem_ids = np.arange(375, 390) * 255
@@ -474,12 +486,18 @@ class MultiObjectTask(PointNavFixedTask):
                 [-np.random.uniform(50, 100), -np.random.uniform(50, 100), -np.random.uniform(50, 100)], [0, 0, 0, 1])
             cracker_ob[2].set_base_link_position_orientation(
                 [-np.random.uniform(50, 100), -np.random.uniform(50, 100), -np.random.uniform(50, 100)], [0, 0, 0, 1])
-        self.reset_doors(env)
+        if not self.test_demo:
+            self.reset_doors(env)
 
     def sample_target_object(self):
         self.wanted_objects = np.zeros(self.num_categories)
-        self.indices = np.random.choice(np.arange(self.num_categories), size=self.num_tar_objects,
-                                        replace=self.replace_objects)  # np.random.choice(np.array([0,1]),size=1,replace=False)#
+        if self.test_demo:
+            self.indices = np.random.choice(np.arange(self.num_categories), size=self.num_tar_objects,
+                                            replace=False)
+        else:
+            self.indices = np.random.choice(np.arange(self.num_categories), size=self.num_tar_objects,
+                                            replace=self.replace_objects)
+
         self.current_category = np.array([int(self.indices[0])])
         # if 5 in self.indices:
         #    self.indices = np.delete(self.indices,5,0)

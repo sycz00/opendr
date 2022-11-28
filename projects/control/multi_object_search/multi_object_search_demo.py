@@ -37,21 +37,7 @@ def set_seed(seed: int):
     np.random.seed(seed)
     random.seed(seed)
 
-def make_env(rank: int, seed: int = 0, data_set=[]) -> Callable:
-    def _init() -> MultiObjectEnv:
-        env = MultiObjectEnv(
-            config_file=config_filename,
-            scene_id=data_set[rank],
-            mix_sample=mix_sample[data_set[rank]]
-        )
 
-        env.seed(seed + rank)
-
-        return env
-
-    set_random_seed(rank)
-
-    return _init
 
 def create_env(config,logpath):
     #currently only for 8 training proccesses. Feel free to extend the list.
@@ -62,6 +48,22 @@ def create_env(config,logpath):
     #one is chosen.
     mix_sample = {'Merom_0_int': False, 'Benevolence_0_int': True, 'Pomaria_0_int': False, 'Wainscott_1_int': False,
                   'Rs_int': True, 'Ihlen_0_int': False, 'Beechwood_1_int': False, 'Ihlen_1_int': False}
+
+    def make_env(rank: int, seed: int = 0, data_set=[]) -> Callable:
+        def _init() -> MultiObjectEnv:
+            env_ = MultiObjectEnv(
+                config_file=CONFIG_FILE,
+                scene_id=data_set[rank],
+                mix_sample=mix_sample[data_set[rank]]
+            )
+
+            env_.seed(seed + rank)
+
+            return env_
+
+        set_random_seed(rank)
+
+        return _init
 
     num_cpu_train = config.get('num_cpu', 1)
 
@@ -81,23 +83,21 @@ def main():
 
     checkpoint_path = f'{main_path}/checkpoints/'
     config = parse_config(CONFIG_FILE)
-
+    
     os.makedirs(logpath, exist_ok=True)
 
-    #device = "cuda" if torch.cuda.is_available() else "cpu"
+    device = "cuda" if torch.cuda.is_available() else "cpu"
 
     set_seed(config.get('seed', 0))
 
 
     # create envs
     env = create_env(config,logpath)
-    agent = ExplorationRLLearner(env, device=config.get('device', "cpu"), iters=config.get('iterations', 500),temp_path=checkpoint_path,config_filename=CONFIG_FILE)
+    agent = ExplorationRLLearner(env, device=device, iters=config.get('train_iterations', 500),temp_path=checkpoint_path,config_filename=CONFIG_FILE)
     
 
     # train
-    if config.get('train', False):
-        agent.fit(env, val_env=eval_env)
-    else:
+    if config.get('evaluate', False):
         print("Start Evaluation")
 
         eval_scenes = ['Benevolence_1_int', 'Pomaria_2_int', 'Benevolence_2_int', 'Wainscott_0_int', 'Beechwood_0_int',
@@ -106,11 +106,14 @@ def main():
         agent.load("pretrained")
 
         deterministic_policy = config.get('deterministic_policy', False)
-        for scene in eval_scenes:
-            metrics = agent.eval(env,name_prefix='Multi_Object_Search', name_scene=scene,nr_evaluations= 75,\
-                deterministic_policy = False)
 
-            print(f"Success-rate for {scene} : {metrics['metrics']['success']} \n SPL for {scene} : {metrics['metrics']['spl']}")
+        for scene in eval_scenes:
+            metrics = agent.eval(env,name_prefix='Multi_Object_Search', name_scene=scene, nr_evaluations= 75,\
+                deterministic_policy = deterministic_policy)
+
+            print(f"Success-rate for {scene} : {metrics['metrics']['success']} \nSPL for {scene} : {metrics['metrics']['spl']}")
+    else:
+        agent.fit(env)
 
 
 

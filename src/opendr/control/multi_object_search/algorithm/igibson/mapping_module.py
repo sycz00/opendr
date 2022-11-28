@@ -30,6 +30,7 @@ class MappingModule():
         self.door_positions = np.array([[], [], [], []])
         self.downsample_size = self.config.get('global_map_size', 128)
         self.circle_size = self.config.get("circle_size", 6)
+        self.test_demo = self.config.get("test_demo", False)
 
     def world2map(self, xy):
         if (len(xy.shape) > 1):
@@ -95,7 +96,7 @@ class MappingModule():
 
             objects = (np.unique(self.seg_mask)).astype(int)
             # objects = (np.unique(sensors['seg'])).astype(int)
-
+            
             self.draw_object_categories(env, objects, point_cloud, euler_mat, camera_translation)
 
             # curr_sim_pose = camera_translation[0], camera_translation[1], camera_angles[2]
@@ -222,11 +223,9 @@ class MappingModule():
                 continue
 
             point_cloud_category = point_cloud[(self.seg_mask == ob).squeeze(), :]
-            # indices = np.argwhere(cat2[:,0] == 0.0)
-            # cat2 = np.delete(cat2,indices[:,0],axis=0)
             point_cloud_category = euler_mat.dot(point_cloud_category.T).T + camera_translation
             point_cloud_category = self.world2map(point_cloud_category).astype(np.uint16)
-            # 255 is the ceiling
+            
             if ob in env.task.ob_cats or ob == 1530:
                 pass
             # sink
@@ -237,9 +236,7 @@ class MappingModule():
                 env.global_map[point_cloud_category[:, 1], point_cloud_category[:, 0]] = self.colors['forbidden_door']
             elif (ob in env.task.door_sem_ids):
                 ind = env.task.door_cat_to_ind[ob]
-
                 env.global_map[point_cloud_category[:, 1], point_cloud_category[:, 0]] = self.colors['door_colors'][ind]
-
             # sofa
             elif (ob == 82365):
                 env.global_map[point_cloud_category[:, 1], point_cloud_category[:, 0]] = self.colors[
@@ -247,7 +244,10 @@ class MappingModule():
             elif (ob == 99960):
                 env.global_map[point_cloud_category[:, 1], point_cloud_category[:, 0]] = self.colors['walls']
             else:
-                env.global_map[point_cloud_category[:, 1], point_cloud_category[:, 0]] = self.colors['sofa']
+                if self.test_demo:
+                    env.global_map[point_cloud_category[:, 1], point_cloud_category[:, 0]] = self.colors['free_space']
+                else:
+                    env.global_map[point_cloud_category[:, 1], point_cloud_category[:, 0]] = self.colors['sofa']
 
             # semantic categories
             if ob in env.task.ob_cats:
@@ -389,6 +389,8 @@ class MappingModule():
                                        'object_dist': 1.4, 'doors': ['door_54', 'door_52'],
                                        'forbidden_doors': ['door_54'], "door_dist": 1.0, "map_size": 450}  #
 
+
+
         self.map_settings['Ihlen_0_int'] = {'grid_offset': np.array([5.5, 3.0, 15.1]),
                                             'grid_spacing': np.array([self.grid_res, self.grid_res, 0.1]), 'offset': 0,
                                             'object_dist': 2.0, 'door_dist': 1.4,
@@ -408,3 +410,9 @@ class MappingModule():
                                             'doors': ['door_86', 'door_91', 'door_99', 'door_103', 'door_108'],
                                             'forbidden_doors': ['door_86', 'door_91'],
                                             "map_size": 500}  
+
+        #new settings
+        self.map_settings['Rs'] = {'grid_offset': np.array([6.0, 5.5, 15.1]),
+                                       'grid_spacing': np.array([self.grid_res, self.grid_res, 0.1]), 'offset': 0,
+                                       'object_dist': 1.4, 'doors': ['door_54', 'door_52'],
+                                       'forbidden_doors': ['door_54'], "door_dist": 1.0, "map_size": 450}  #

@@ -3,7 +3,7 @@ from igibson.render.mesh_renderer.mesh_renderer_settings import MeshRendererSett
 # from igibson.robots.locobot_robot import Locobot
 from igibson.scenes.igibson_indoor_scene import InteractiveIndoorScene
 from igibson.utils.utils import parse_config
-
+from igibson.scenes.gibson_indoor_scene import StaticIndoorScene
 # from igibson.robots.fetch_robot import Fetch
 from opendr.control.multi_object_search.algorithm.igibson.fetch import Fetch_DD
 from opendr.control.multi_object_search.algorithm.igibson.locobot import Locobot_DD
@@ -47,7 +47,7 @@ class BaseFunctions(BaseEnv):
         self.action_timestep = self.config.get("action_timestep", 1.0) / self.config.get("action_timestep_div", 10.0)
         self.physics_timestep = self.config.get("physics_timestep", 1.0) / self.config.get("physics_timestep_div",
                                                                                            120.0)
-
+        self.test_demo = self.config.get("test_demo", False)
         self.texture_randomization_freq = self.config.get("texture_randomization_freq", None)
         self.object_randomization_freq = self.config.get("object_randomization_freq", None)
         self.object_randomization_idx = 0

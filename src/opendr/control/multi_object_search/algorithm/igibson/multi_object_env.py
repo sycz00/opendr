@@ -45,8 +45,8 @@ class MultiObjectEnv(BaseFunctions):
         :param automatic_reset: whether to automatic reset after an episode finishes
         """
         self.mapping = MappingModule(config_file, scene_id)
-        # self.load_miscellaneous_1()
-
+        
+        
         self.mix_sample = mix_sample
         super(MultiObjectEnv, self).__init__(
             config_file=config_file,
@@ -64,14 +64,16 @@ class MultiObjectEnv(BaseFunctions):
         self.evaluate = self.config.get('evaluate', False)
         if self.evaluate:
             self.aux_episodic_prob = 1.0
+            self.multiple_envs = False
+            self.resample_task = False
         else:
             self.aux_episodic_prob = self.config.get('initial_aux_prob', 0.16)
+            self.multiple_envs = self.config.get('multiple_envs', True)
+            self.resample_task = self.config.get('resample_task', True)
 
         self.max_aux_episodic_prob = self.config.get('max_aux_episodic_prob', 0.72)
         
-        self.multiple_envs = self.config.get('multiple_envs', False)
-        self.resample_task = self.config.get('resample_task', True)
-
+        
         self.SR_rate = []
 
     def load_task_setup(self):
@@ -104,7 +106,10 @@ class MultiObjectEnv(BaseFunctions):
         self.numb_sem_categories = self.config.get("sem_categories", 1)
         self.last_scene_id = self.config.get("scene_id", 'Rs_int')
         self.task.load_custom_objects(self)
-        self.task.load_door_material(self)
+        if not self.test_demo:
+            self.task.load_door_material(self)
+        else:
+            self.task.load_door_proxy_material()
 
     def build_obs_space(self, shape, low, high):
         """
@@ -238,7 +243,6 @@ class MultiObjectEnv(BaseFunctions):
         for item in collision_links:
 
             # ignore collision with body b
-
             if item[2] in self.collision_ignore_body_b_ids:
                 continue
 
@@ -556,7 +560,7 @@ class MultiObjectEnv(BaseFunctions):
                 self.scene_reset_counter = 0
                 self.last_scene_id = scene_id
 
-        # self.task.object_distance = self.map_settings[self.last_scene_id]['object_dist']
+        
         self.scene_reset_counter += 1
         self.mapping.aux_prob_counter += 1
 
@@ -564,14 +568,34 @@ class MultiObjectEnv(BaseFunctions):
         # move robot away from the scene
         self.robots[0].set_position([100.0, 100.0, 100.0])
         self.task.reset_scene(self)
-
         self.task.reset_agent(self)
+        
+        if self.test_demo:
+           
+            #just a elementary test on the Demo-scene Rs (not to confuse with Rs_int)
+            self.land(self.robots[0],[0,0,0],[0,0,0])
+            orn = np.array([0, 1, 1.5])
+            positions_cracker = [[0.4,-1.0,0.0],[0.4,-2.0,0.0],[0.4,-3.0,0.0],[0.95,-3.1,0.0],\
+            [0.5,1.0,0.0],[1.0,1.0,0.0]]
+            self.task.target_pos_list = np.array(positions_cracker)
+            for i,cracker_list in enumerate(self.task.interactive_objects):
+                pos = positions_cracker[i]
+                self.land(cracker_list[0], pos, orn)
+                pos2 = pos.copy()
+                pos2[0] += 0.195
+                self.land(cracker_list[1], pos2, orn)
+                pos3 = pos.copy()
+                pos3[0] -= 0.195
+                self.land(cracker_list[2], pos3, orn)
 
         self.simulator.sync()
         state = self.get_state()
         self.reset_variables()
         self.mapping.reset(self)
         self.global_map = np.zeros((self.mapping.map_size[0], self.mapping.map_size[1], 3), dtype=np.uint8) * 255
+        
+        if self.test_demo:
+            self.global_map[:,:,:] = self.mapping.colors['walls']
 
         self.seg_mask = (state['seg'] * 255).astype(int)
 

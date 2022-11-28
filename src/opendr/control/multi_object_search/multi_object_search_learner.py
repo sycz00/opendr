@@ -21,7 +21,6 @@ from pathlib import Path
 
 from stable_baselines3.common.utils import configure_logger
 from stable_baselines3.common.vec_env import VecEnv
-#from stable_baselines3.sac import SAC
 from opendr.control.multi_object_search.algorithm.SB3.ppo import PPO_AUX
 from opendr.control.multi_object_search.algorithm.SB3.encoder import EgocentricEncoders
 from igibson.utils.utils import parse_config
@@ -30,9 +29,9 @@ from urllib.request import urlretrieve
 from opendr.control.multi_object_search.algorithm.evaluation import evaluation_rollout
 from opendr.control.multi_object_search.algorithm.SB3.save_model_callback import SaveModel
 
-#from opendr.control.mobile_manipulation.mobileRL.stablebl_callbacks import MobileRLEvalCallback
 from opendr.engine.constants import OPENDR_SERVER_URL
 from opendr.engine.learners import LearnerRL
+
 
 from igibson.utils.assets_utils import download_assets,download_ig_dataset,download_demo_data
 import shutil
@@ -57,17 +56,13 @@ class ExplorationRLLearner(LearnerRL):
         self.seed = seed
         self.lr_end = lr_end
         self.nr_evaluations = nr_evaluations
+        
         #self.evaluation_frequency = evaluation_frequency
-        self.stable_bl_agent = self._construct_agent(env=env, config_filename=config_filename)
+        if env is not None:
+            
+            self.stable_bl_agent = self._construct_agent(env=env, config_filename=config_filename)
 
-        """
-        if checkpoint_load_iter:
-            if restore_model_path == 'pretrained':
-                assert checkpoint_load_iter == 1_000_000, "pretrained models are provided for step 1_000_000"
-            else:
-                restore_model_path = os.path.join(restore_model_path, f"model_step{checkpoint_load_iter}")
-            self.load(restore_model_path)
-        """
+        
     def download(self, path=None,
                  mode="checkpoint",
                  url=OPENDR_SERVER_URL + "control/multi_object_search/",
@@ -81,6 +76,7 @@ class ExplorationRLLearner(LearnerRL):
         
         if mode == 'checkpoint':
             assert robot_name is not None, robot_name
+            print(f"-----> Start Download SB3 Checkpoint for {robot_name}")
             filename = f"checkpoints/{robot_name.lower()}.zip"
             file_destination = Path(path) / filename
             
@@ -93,42 +89,11 @@ class ExplorationRLLearner(LearnerRL):
             print("-----> Start downloading iGibson assets")
             download_assets()
             download_demo_data()
-            #download_ig_dataset()
-            #igibson.assets_path
-            #igibson.ig_dataset_path
-            inflated_files = ["Beechwood_0_int","Beechwood_1_int","Benevolence_0_int","Benevolence_1_int","Benevolence_2_int","Ihlen_0_int",\
-            "Ihlen_1_int","Merom_0_int","Merom_1_int","Pomaria_0_int","Pomaria_1_int","Pomaria_2_int","Rs_int","Wainscott_0_int","Wainscott_1_int"]
-            print("-----> Start Download iGibson prerequisits")
             
             file_destinations = []
-            for d in ["inflated_maps","fetch.urdf","locobot.urdf"]:
-                
-                if d == "inflated_maps":
-                    for infl_map in inflated_files:
-                        filename = f"{d}/scenes/{infl_map}/layout/floor_trav_no_obj_0.png"
-                        file_destination = Path(path) / filename
-                        file_destinations.append(file_destination)
-                        if not file_destination.exists():
-                            file_destination.parent.mkdir(parents=True, exist_ok=True)
-                            
-
-                            url_download = os.path.join(url, filename)
-                           
-                            urlretrieve(url=url_download, filename=file_destination)
-
-                    #copy all inflated maps to the corresponding iGibson folders
-                    all_subdirs = [scen_n for scen_n in os.listdir(Path(path) / f"{d}/scenes/")]
-                    for scene_name in all_subdirs:
-                        inflated_src = Path(path) / f"{d}/scenes/" / scene_name/"layout/floor_trav_no_obj_0.png"
-                        dst = Path(igibson.ig_dataset_path) / f"scenes/{scene_name}/layout/"
-                        shutil.copy(inflated_src, dst)
-                        graph_file = dst / "floor_trav_0_py38.p"
-                        #remove Graph file for corresponding traversability map
-                        if graph_file.exists():
-                            os.remove(graph_file)
-
+            for d in ["fetch.urdf","locobot.urdf"]:
                     
-                elif d == "fetch.urdf":
+                if d == "fetch.urdf":
                     filename = f"{d}"
                     file_destination = Path(path) / filename
                     file_destinations.append(file_destination)
@@ -183,7 +148,7 @@ class ExplorationRLLearner(LearnerRL):
             aux_pred_dim=aux_bin_number, 
             proprio_dim=task_obs)
 
-    def fit(self, env=None, val_env=None, logging_path='', silent=False, verbose=True):
+    def fit(self, env=None, logging_path='', silent=False, verbose=True):
         """
         Train the agent on the environment.
 
@@ -206,14 +171,11 @@ class ExplorationRLLearner(LearnerRL):
         save_model_callback = SaveModel(check_freq=self.config.get("rollout_buffer_size", 2048), log_dir=logging_path)
 
         self.stable_bl_agent.learn(total_timesteps=self.iters,callback=save_model_callback)
-                                   #eval_env=None)
+                                   
 
         self.stable_bl_agent.save(os.path.join(logging_path, 'last_model'))
 
-        for e in [env, val_env]:
-            if e is not None:
-                env.env_method("clear")
-        #rospy.loginfo("Training finished")
+        
 
     def eval(self, env, name_prefix='', name_scene='',nr_evaluations: int = 75,deterministic_policy: bool = False):
         """
@@ -273,9 +235,9 @@ class ExplorationRLLearner(LearnerRL):
         
 
         if path == 'pretrained':
-            path = str(self.download(self.temp_path, mode="checkpoint",robot_name=self.config.get("robot", "Locobot")))
+            path = str(self.download(self.temp_path, mode="checkpoint",robot_name=self.config.get("robot", "Fetch")))
 
-        
+        #self.stable_bl_agent.load(path)#,custom_objects={'data':None,'system_info.txt','_stable_baselines3_version','pytorch_variables.pth','policy.pth'})
         self.stable_bl_agent.set_parameters(path,exact_match=False)
         
         
