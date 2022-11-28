@@ -38,12 +38,11 @@ import shutil
 import igibson
 
 class ExplorationRLLearner(LearnerRL):
-    def __init__(self, env: gym.Env, lr=1e-5, iters=6_000_000, batch_size=64, lr_schedule='',
-                 lr_end: float = 1e-6, backbone='MultiInputPolicy', checkpoint_after_iter=20_000, checkpoint_load_iter=0,
-                 restore_model_path: Optional[str] = None, temp_path='', device='cuda', seed: int = None,
-                 gamma: float = 0.99,
-                 buffer_size: int = 2048,
-                 config_filename='',nr_evaluations: int = 50):
+    def __init__(self, env: gym.Env, lr=1e-5, ent_coef: float = 0.005, clip_range: float = 0.1,gamma: float = 0.99,
+                 n_steps: int = 2048, n_epochs: int = 4,iters=6_000_000, batch_size=64, lr_schedule='',
+                 backbone='MultiInputPolicy', checkpoint_after_iter=20_000,
+                 temp_path='', device='cuda', seed: int = None,
+                 config_filename='', nr_evaluations: int = 75):
         """
         Specifies a soft-actor-critic (SAC) agent that can be trained for mobile manipulation.
         Internally uses Stable-Baselines3 (https://github.com/DLR-RM/stable-baselines3).
@@ -51,13 +50,15 @@ class ExplorationRLLearner(LearnerRL):
         super(LearnerRL, self).__init__(lr=lr, iters=iters, batch_size=batch_size, optimizer='adam',
                                         lr_schedule=lr_schedule, backbone=backbone, network_head='',
                                         checkpoint_after_iter=checkpoint_after_iter,
-                                        checkpoint_load_iter=checkpoint_load_iter, temp_path=temp_path,
+                                        checkpoint_load_iter=0, temp_path=temp_path,
                                         device=device, threshold=0.0, scale=1.0)
         self.seed = seed
-        self.lr_end = lr_end
+        self.ent_coef = ent_coef
+        self.clip_range = clip_range
+        self.n_steps = n_steps
+        self.n_epochs = n_epochs
         self.nr_evaluations = nr_evaluations
-        
-        #self.evaluation_frequency = evaluation_frequency
+        self.gamma = gamma
         if env is not None:
             
             self.stable_bl_agent = self._construct_agent(env=env, config_filename=config_filename)
@@ -135,13 +136,13 @@ class ExplorationRLLearner(LearnerRL):
         policy_kwargs = dict(features_extractor_class=EgocentricEncoders)
         return PPO_AUX(policy=self.backbone,
             env=env,
-            ent_coef=self.config.get("ent_coef", 0.005), 
-            batch_size=self.config.get("batch_size", 64), 
-            clip_range=self.config.get("clip_range", 0.1),
-            gamma=self.config.get("gamma", 0.99),
-            n_steps=self.config.get("rollout_buffer_size", 2048), 
-            n_epochs=self.config.get("n_epochs", 4),
-            learning_rate=self.config.get("learning_rate", 0.0001),
+            ent_coef=self.ent_coef, 
+            batch_size=self.batch_size, 
+            clip_range=self.clip_range,
+            gamma=self.gamma,
+            n_steps=self.n_steps, 
+            n_epochs=self.n_epochs,
+            learning_rate=self.lr,
             verbose=0,
             tensorboard_log=self.temp_path, 
             policy_kwargs=policy_kwargs,
@@ -167,8 +168,7 @@ class ExplorationRLLearner(LearnerRL):
             assert env.observation_space == self.stable_bl_agent.env.observation_space
             self.stable_bl_agent.env = env
 
-        #rospy.loginfo("Start learning loop")
-        save_model_callback = SaveModel(check_freq=self.config.get("rollout_buffer_size", 2048), log_dir=logging_path)
+        save_model_callback = SaveModel(check_freq=self.checkpoint_after_iter, log_dir=logging_path)
 
         self.stable_bl_agent.learn(total_timesteps=self.iters,callback=save_model_callback)
                                    
@@ -206,7 +206,7 @@ class ExplorationRLLearner(LearnerRL):
             name_scene=name_scene,
             deterministic_policy=deterministic_policy,
             verbose=2)
-        #env.clear()
+        
         return {"episode_rewards": episode_rewards,
                 "episode_lengths": episode_lengths,
                 "metrics": metrics,

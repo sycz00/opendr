@@ -20,7 +20,7 @@ import unittest
 import random
 from opendr.control.multi_object_search import MultiObjectEnv
 from opendr.control.multi_object_search import ExplorationRLLearner 
-
+from igibson.utils.utils import parse_config
 from stable_baselines3.common.monitor import Monitor
 
 from pathlib import Path
@@ -49,7 +49,7 @@ class MultiObjectSearchTest(unittest.TestCase):
         print("\n\n**********************************\nTEST Multi-Object-Search\n"
               "**********************************")
         set_seed(0)
-        cls.learner = ExplorationRLLearner(None, device=device, iters=TEST_ITERS, temp_path=str(TEMP_SAVE_DIR),config_filename=EVAL_CONFIG_FILE)
+        cls.learner = ExplorationRLLearner(env=None, device=device, iters=TEST_ITERS, temp_path=str(TEMP_SAVE_DIR),config_filename=EVAL_CONFIG_FILE)
         cls.download_assets()
         cls.download_ckp()
         cls.tearDownClass()
@@ -59,7 +59,10 @@ class MultiObjectSearchTest(unittest.TestCase):
             TEMP_SAVE_DIR.mkdir(parents=True, exist_ok=True)
         
         cls.env = Monitor(cls.env,str(TEMP_SAVE_DIR))
-        cls.learner = ExplorationRLLearner(cls.env, device=device, iters=TEST_ITERS, temp_path=str(TEMP_SAVE_DIR),config_filename=EVAL_CONFIG_FILE)
+        config = parse_config(EVAL_CONFIG_FILE)
+        cls.learner = ExplorationRLLearner(env=cls.env,lr=config.get("learning_rate", 0.0001), ent_coef=config.get("ent_coef", 0.005), clip_range=config.get("clip_range", 0.1),n_steps=config.get("rollout_buffer_size", 2048)\
+            , n_epochs=config.get("n_epochs", 4),batch_size=config.get("batch_size", 64),gamma=config.get("gamma", 0.99) \
+            ,device=device, iters=TEST_ITERS, temp_path=str(TEMP_SAVE_DIR),config_filename=EVAL_CONFIG_FILE)
 
     @classmethod
     def tearDownClass(cls):

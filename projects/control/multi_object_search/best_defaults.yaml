@@ -13,25 +13,25 @@ texture_randomization_freq: null
 object_randomization_freq: null
 
 # robot setup Fetch Robot
-robot: Fetch
-circle_size: 6 
-is_discrete: false
-robot_scale: 0.85
+#robot: Fetch
+#circle_size: 6 
+#is_discrete: false
+#robot_scale: 0.85
 #Fetch originally used 0.1 -angul and 0.2 - lin velocities
 #since the controller is not using max_velocites for wheels,
 #set the velocties higher then usual
-angular_velocity: 2.0
-linear_velocity: 1.0
-self_collision: true
-collision_ignore_link_a_ids: [0, 1, 2]  # ignore collisions with links for Fetch
+#angular_velocity: 2.0
+#linear_velocity: 1.0
+#self_collision: true
+#collision_ignore_link_a_ids: [0, 1, 2]  # ignore collisions with links for Fetch
 # robot setup LoCoBot Robot
-#robot: Locobot
-#robot_scale: 1.0
-#circle_size: 6 #for Locobot
-#angular_velocity: 1.0
-#linear_velocity: 0.5
-#collision_ignore_link_a_ids: [ 1, 2, 3, 4 ]  # ignore collisions with links for Locobot
-#self_collision: false
+robot: Locobot
+robot_scale: 1.0
+circle_size: 6 #for Locobot
+angular_velocity: 1.0
+linear_velocity: 0.5
+collision_ignore_link_a_ids: [ 1, 2, 3, 4 ]  # ignore collisions with links for Locobot
+self_collision: false
 
 #Simulation configs
 physics_timestep: 1.0
@@ -39,7 +39,7 @@ physics_timestep_div: 120.0
 action_timestep: 1.0
 action_timestep_div: 10.0
 #Use either gui, headless or in_gui as userinterface
-mode: headless
+mode: gui
 
 #SB3 configs
 train_iterations: 4000000
@@ -50,7 +50,8 @@ clip_potential_rew: false
 pot_rew_clip_value: 0.2
 
 # iGibson task setup
-evaluate: false
+evaluate: true
+
 target_dist_min: 3.0
 target_dist_max: 12.0
 goal_format: polar
@@ -63,7 +64,7 @@ history_length_aux: 16
 initial_aux_prob: 0.16
 max_aux_episodic_prob: 0.72
 resample_episode_prob: 0.15
-show_map: false
+show_map: true
 #for unit-test
 test_demo: false
 multiple_envs: true
