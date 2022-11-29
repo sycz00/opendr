@@ -6,9 +6,9 @@ The *multi_object_search* module contains the *ExplorationRLLearner* class, whic
 Bases: `engine.learners.LearnerRL`
 
 The *ExplorationRLLearner* class is an RL agent that can be used to train wheeled robots for combining short-horizon control with long horizon reasioning into a single policy.
-Originally published in [[1]](#kinematic-feasibility), demonstrations can be found on [Learning Kinematic Feasibility for Mobile Manipulation through Deep Reinforcement Learning](http://kinematic-rl.cs.uni-freiburg.de/).
+Originally published in [[1]](#multi_object_search), Learning Long-Horizon Robot Exploration Strategies for Multi-Object Search in Continuous Action Spaces,(https://arxiv.org/abs/2205.11384).
 
-The [MobileRLLearner](/src/opendr/control/multi_object_search/multi_object_search_learner.py) class has the following public methods:
+The [ExplorationRLLearner](/src/opendr/control/multi_object_search/multi_object_search_learner.py) class has the following public methods:
 
 #### `ExplorationRLLearner` constructor
 
@@ -112,7 +112,7 @@ Parameters:
 #### Simulation Setup
 The repository uses the iGibson Simulator as well as Stable-baseline3 as external libaries. 
 
-This means that the training environment relies on running using the iGibson scenes. For that it is necessary to download the iGibson scenes. A script is provided in [ExplorationRLLearner](/src/opendr/control/multi_object_search/requirements_installations.py) 
+This means that the training environment relies on running using the iGibson scenes. For that it is necessary to download the iGibson scenes. A script is provided in [multi_object_search](/src/opendr/control/multi_object_search/requirements_installations.py) 
 To download he iGibson and the inflated traversability maps, please execute the following script and accept the agreement.
 
 ```sh
