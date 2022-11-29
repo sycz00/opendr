@@ -56,8 +56,8 @@ class DictRolloutBuffer(RolloutBuffer):
         self.gamma = gamma
 
         if (self.use_aux):
-            self.observations, self.actions, self.rewards, self.advantages, 
-            self.aux_angle, self.aux_angle_gt = None, None, None, None, None, None
+            self.observations, self.actions, self.rewards, self.advantages = None, None, None, None
+            self.aux_angle, self.aux_angle_gt = None, None
         else:
             self.observations, self.actions, self.rewards, self.advantages = None, None, None, None
 
