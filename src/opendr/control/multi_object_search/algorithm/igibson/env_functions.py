@@ -1,10 +1,8 @@
 from igibson.envs.env_base import BaseEnv
 from igibson.render.mesh_renderer.mesh_renderer_settings import MeshRendererSettings
-# from igibson.robots.locobot_robot import Locobot
 from igibson.scenes.igibson_indoor_scene import InteractiveIndoorScene
 from igibson.utils.utils import parse_config
 from igibson.scenes.gibson_indoor_scene import StaticIndoorScene
-# from igibson.robots.fetch_robot import Fetch
 from opendr.control.multi_object_search.algorithm.igibson.fetch import Fetch_DD
 from opendr.control.multi_object_search.algorithm.igibson.locobot import Locobot_DD
 from opendr.control.multi_object_search.algorithm.igibson.sim import Sim
@@ -93,15 +91,8 @@ class BaseFunctions(BaseEnv):
         """
         Load the scene and robot
         """
-        if self.config["scene"] == "empty":
-            scene = EmptyScene()
-            self.simulator.import_scene(
-                scene, load_texture=self.config.get("load_texture", True), render_floor_plane=True
-            )
-        elif self.config["scene"] == "stadium":
-            scene = StadiumScene()
-            self.simulator.import_scene(scene, load_texture=self.config.get("load_texture", True))
-        elif self.config["scene"] == "gibson":
+        
+        if self.config["scene"] == "gibson":
             scene = StaticIndoorScene(
                 self.config["scene_id"],
                 waypoint_resolution=self.config.get("waypoint_resolution", 0.2),
@@ -137,28 +128,10 @@ class BaseFunctions(BaseEnv):
                 scene._set_first_n_objects(first_n)
             self.simulator.import_ig_scene(scene)
 
-        if self.config["robot"] == "Turtlebot":
-            robot = Turtlebot(self.config)
-        elif self.config["robot"] == "Husky":
-            robot = Husky(self.config)
-        elif self.config["robot"] == "Ant":
-            robot = Ant(self.config)
-        elif self.config["robot"] == "Humanoid":
-            robot = Humanoid(self.config)
-        elif self.config["robot"] == "JR2":
-            robot = JR2(self.config)
-        elif self.config["robot"] == "JR2_Kinova":
-            robot = JR2_Kinova(self.config)
-        elif self.config["robot"] == "Freight":
-            robot = Freight(self.config)
-        elif self.config["robot"] == "Fetch":
+        if self.config["robot"] == "Fetch":
             robot = Fetch_DD(self.config)
         elif self.config["robot"] == "Locobot":
             robot = Locobot_DD(self.config)
-        elif self.config["robot"] == "PR2":
-            robot = Pr2(self.config)
-        elif self.config["robot"] == "HSR":
-            robot = HSR(self.config)
         else:
             raise Exception("unknown robot type: {}".format(self.config["robot"]))
 

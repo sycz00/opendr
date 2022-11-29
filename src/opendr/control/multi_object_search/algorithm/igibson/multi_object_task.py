@@ -21,19 +21,18 @@ class MultiObjectTask(PointNavFixedTask):
     def __init__(self, env):
         super(MultiObjectTask, self).__init__(env)
 
-
         self.target_dist_min = self.config.get("target_dist_min", 1.0)
         self.target_dist_max = self.config.get("target_dist_max", 10.0)
         self.num_tar_objects = self.config.get("tar_objects", 6.0)
         self.polar_to_geodesic = self.config.get("polar_to_geodesic", False)
 
-        self.replace_objects = self.config.get("replace_objects", True) if not self.config.get('evaluate',False) else False
+        self.replace_objects = self.config.get("replace_objects", True) if not self.config.get('evaluate', False) else False
 
         self.resample_episode_prob = self.config.get("resample_episode_prob", 0.15)
 
         self.test_demo = self.config.get("test_demo", False)
         if self.test_demo:
-            #accelerate demo tests
+            # Accelerate demo tests
             self.termination_conditions[1].max_step = 500
 
         self.current_target_ind = 0
@@ -102,21 +101,12 @@ class MultiObjectTask(PointNavFixedTask):
                 if not enough_distance_to_other_objects:
                     continue
 
-                # enough_distance_to_doors = True
-                # for d_pos in self.door_pos_list:
-                #    if l2_distance(pos[:2],d_pos[:2]) < 0.5:
-                #        enough_distance_to_doors = False
-                #        break
-
-                # if not enough_distance_to_doors:
-                #    continue
-
-                if env.scene.build_graph:
-                    _, dist = env.scene.get_shortest_path(
-                        self.floor_num, self.initial_pos[:2], pos[:2], entire_path=False
-                    )
-                else:
-                    dist = l2_distance(initial_pos, target_pos)
+                _, dist = env.scene.get_shortest_path(
+                    self.floor_num, 
+                    self.initial_pos[:2], 
+                    pos[:2], 
+                    entire_path=False
+                )
 
                 orn = np.array([0, 1, 1.5])
 
@@ -227,7 +217,6 @@ class MultiObjectTask(PointNavFixedTask):
                 sem_id = env.simulator.pb_id_to_sem_id_map[door_id]  # name_to_sem_id_map[key]
                 self.forbidden_door_ids.append(door_id)
 
-                # self.forbidden_door_sem_ids.append(env.scene.door_list[key][1]*255)
                 self.forbidden_door_sem_ids.append(sem_id * 255)
 
             if key not in keep_door_list:
@@ -236,14 +225,12 @@ class MultiObjectTask(PointNavFixedTask):
 
             else:
 
-                sem_id = env.simulator.pb_id_to_sem_id_map[door_id]  # name_to_sem_id_map[key]
+                sem_id = env.simulator.pb_id_to_sem_id_map[door_id]  
                 self.all_door_ids.append(door_id)
                 door_pos_orient = p.getBasePositionAndOrientation(door_id)
                 pos_door = door_pos_orient[0]
                 self.door_pos_list.append(pos_door)
-                # this extracts the semantic category which has been set in the scene loading process and puts it into the mapping.
                 self.door_cat_to_ind[sem_id * 255] = ind
-                # print(f"ID {env.scene.door_list[key][1]} and ind  {ind}")
                 ind += 1
 
         # print("----",self.door_cat_to_ind)
@@ -251,13 +238,9 @@ class MultiObjectTask(PointNavFixedTask):
         self.already_dilated_doors = np.zeros(ind)
 
     def reset_doors(self, env):
-        # opens all doors, even the ones leading to the cliff (end of map)
         env.scene.open_all_doors()
-        # for forb_door_id in self.forbidden_door_ids:
         for d_id in self.removed_doors.keys():
-            # door_pos_orient = p.getBasePositionAndOrientation(d_id)
 
-            # env.scene.remove_object(self.removed_doors[d_id])
             self.removed_doors[d_id].main_body_is_fixed = False
             self.removed_doors[d_id].set_base_link_position_orientation(
                 [-np.random.uniform(50, 100), -np.random.uniform(50, 100), -np.random.uniform(50, 100)], [0, 0, 0, 1])
@@ -267,7 +250,7 @@ class MultiObjectTask(PointNavFixedTask):
             env.scene.open_one_obj(door_id, mode="max")
 
             if door_id in self.forbidden_door_ids:
-                pairs = env.scene.open_one_obj(door_id, mode="zero")
+                env.scene.open_one_obj(door_id, mode="zero")
 
             else:
                 # jointFrictionForce = 1
@@ -400,7 +383,6 @@ class MultiObjectTask(PointNavFixedTask):
         :return: task-specific observation
         """
         if (self.polar_to_geodesic):
-            # print("Num waypoints:{} and first three ones {} - {} - {}".format(self.current_waypoints.shape,self.current_waypoints[0],self.current_waypoints[1],self.current_waypoints[2]))
             ind = self.current_waypoints.shape[0] // 3
             self.next_waypoint = np.array([self.current_waypoints[ind][0], self.current_waypoints[ind][1], 1.0])
             task_obs = self.global_to_local(env, self.next_waypoint)[:2]
@@ -513,7 +495,8 @@ class MultiObjectTask(PointNavFixedTask):
             self.uniq_indices = np.argwhere(self.wanted_objects != 0)[:, 0]
 
         print(
-            f"New Episode wants {self.wanted_objects} object with indices {self.indices} number of categories for episode {self.num_cat_in_episode}")
+            f"New Episode wants {self.wanted_objects} object with indices {self.indices} \
+            number of categories for episode {self.num_cat_in_episode}")
 
     def reset_agent(self, env):
         """

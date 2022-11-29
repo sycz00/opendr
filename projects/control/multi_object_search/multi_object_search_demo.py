@@ -20,12 +20,9 @@ import torch
 from typing import Callable
 from opendr.control.multi_object_search.algorithm.SB3.vec_env import VecEnvExt
 from stable_baselines3.common.vec_env import VecMonitor
-
 from opendr.control.multi_object_search import ExplorationRLLearner 
 from opendr.control.multi_object_search import MultiObjectEnv
-
 from pathlib import Path
-from stable_baselines3.common.utils import configure_logger
 from igibson.utils.utils import parse_config
 from stable_baselines3.common.utils import set_random_seed
 
@@ -38,14 +35,13 @@ def set_seed(seed: int):
     random.seed(seed)
 
 
-
-def create_env(config,logpath):
-    #currently only for 8 training proccesses. Feel free to extend the list.
+def create_env(config, logpath):
+    # Currently only for 8 training proccesses. Feel free to extend the list.
     train_set = ['Merom_0_int', 'Benevolence_0_int', 'Pomaria_0_int', 'Wainscott_1_int', 'Rs_int', 'Ihlen_0_int',
                  'Beechwood_1_int', 'Ihlen_1_int']
 
-    #list is responsible for which of the Scenes are getting "oversampled". After a few episodes, for those scenes, a new 
-    #one is chosen.
+    # List is corresponds to which scenes are oversampled and which are not. 
+    
     mix_sample = {'Merom_0_int': False, 'Benevolence_0_int': True, 'Pomaria_0_int': False, 'Wainscott_1_int': False,
                   'Rs_int': True, 'Ihlen_0_int': False, 'Beechwood_1_int': False, 'Ihlen_1_int': False}
 
@@ -75,9 +71,9 @@ def create_env(config,logpath):
 
     return env
 
+
 def main():
    
-
     main_path = Path(__file__).parent
     logpath = f'{main_path}/logs/'
 
@@ -90,33 +86,43 @@ def main():
 
     set_seed(config.get('seed', 0))
 
-
     # create envs
-    env = create_env(config,logpath)
-    agent = ExplorationRLLearner(env, device=device, iters=config.get('train_iterations', 500),temp_path=checkpoint_path,config_filename=CONFIG_FILE)
+    env = create_env(config, logpath)
+    agent = ExplorationRLLearner(
+        env, 
+        device=device, 
+        iters=config.get('train_iterations', 500),
+        temp_path=checkpoint_path,
+        config_filename=CONFIG_FILE)
     
-
     # train
     if config.get('evaluate', False):
         print("Start Evaluation")
 
-        eval_scenes = ['Benevolence_1_int', 'Pomaria_2_int', 'Benevolence_2_int', 'Wainscott_0_int', 'Beechwood_0_int',
-                'Pomaria_1_int', 'Merom_1_int']
+        eval_scenes = [
+            'Benevolence_1_int', 
+            'Pomaria_2_int', 
+            'Benevolence_2_int', 
+            'Wainscott_0_int', 
+            'Beechwood_0_int',
+            'Pomaria_1_int', 
+            'Merom_1_int']
 
         agent.load("pretrained")
 
         deterministic_policy = config.get('deterministic_policy', False)
 
         for scene in eval_scenes:
-            metrics = agent.eval(env,name_prefix='Multi_Object_Search', name_scene=scene, nr_evaluations= 75,\
-                deterministic_policy = deterministic_policy)
+            metrics = agent.eval(
+                env,
+                name_prefix='Multi_Object_Search', 
+                name_scene=scene, 
+                nr_evaluations=75,
+                deterministic_policy=deterministic_policy)
 
             print(f"Success-rate for {scene} : {metrics['metrics']['success']} \nSPL for {scene} : {metrics['metrics']['spl']}")
     else:
         agent.fit(env)
-
-
-
 
 
 if __name__ == '__main__':

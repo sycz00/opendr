@@ -14,7 +14,6 @@ from stable_baselines3.common.vec_env import VecEnv
 from stable_baselines3.ppo.ppo import PPO
 from torch.nn import functional as F
 from opendr.control.multi_object_search.algorithm.SB3.buffer import DictRolloutBuffer
-#from src.SB3.buffer import DictRolloutBuffer
 from opendr.control.multi_object_search.algorithm.SB3.policy import ActorCriticPolicy_Aux
 
 
@@ -187,7 +186,8 @@ class PPO_AUX(PPO):
 
                 entropy_losses.append(entropy_loss.item())
 
-                loss = policy_loss + self.ent_coef * entropy_loss + self.vf_coef * value_loss + self.auxiliary_loss_coef * aux_loss
+                loss = policy_loss + self.ent_coef * entropy_loss + self.vf_coef * value_loss 
+                + self.auxiliary_loss_coef * aux_loss
 
                 # Calculate approximate form of reverse KL Divergence for early stopping
                 # see issue #417: https://github.com/DLR-RM/stable-baselines3/issues/417
@@ -216,16 +216,18 @@ class PPO_AUX(PPO):
 
         self._n_updates += self.n_epochs
         explained_var = explained_variance(self.rollout_buffer.values.flatten(), self.rollout_buffer.returns.flatten())
-
-      
+ 
         if self.n_envs > 1:
             self.logger.record("train/aux_loss", np.mean(aux_losses))
-            self.logger.record("train/aux_success_rate",
-                           np.mean(np.array([np.mean(np.array(sub_ele)) for sub_ele in self.env.aux_episode_succ])))
-            self.logger.record("train/success_rate",
-                           np.mean(np.array([np.mean(np.array(sub_ele)) for sub_ele in self.env.succ_rate])))
-            self.logger.record("train/collision_rate",
-                           np.mean(np.array([np.mean(np.array(sub_ele)) for sub_ele in self.env.collision_rate])))
+            self.logger.record(
+                "train/aux_success_rate",
+                np.mean(np.array([np.mean(np.array(sub_ele)) for sub_ele in self.env.aux_episode_succ])))
+            self.logger.record(
+                "train/success_rate",
+                np.mean(np.array([np.mean(np.array(sub_ele)) for sub_ele in self.env.succ_rate])))
+            self.logger.record(
+                "train/collision_rate",
+                np.mean(np.array([np.mean(np.array(sub_ele)) for sub_ele in self.env.collision_rate])))
             
         self.logger.record("train/entropy_loss", np.mean(entropy_losses))
         self.logger.record("train/policy_gradient_loss", np.mean(pg_losses))

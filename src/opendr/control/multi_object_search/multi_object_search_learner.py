@@ -12,34 +12,27 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import functools
 import gym
-import numpy as np
 import os
-
+import shutil
+import igibson
 from pathlib import Path
-
 from stable_baselines3.common.utils import configure_logger
 from stable_baselines3.common.vec_env import VecEnv
 from opendr.control.multi_object_search.algorithm.SB3.ppo import PPO_AUX
 from opendr.control.multi_object_search.algorithm.SB3.encoder import EgocentricEncoders
 from igibson.utils.utils import parse_config
-from typing import Optional
 from urllib.request import urlretrieve
 from opendr.control.multi_object_search.algorithm.evaluation import evaluation_rollout
 from opendr.control.multi_object_search.algorithm.SB3.save_model_callback import SaveModel
-
 from opendr.engine.constants import OPENDR_SERVER_URL
 from opendr.engine.learners import LearnerRL
+from igibson.utils.assets_utils import download_assets, download_demo_data
 
-
-from igibson.utils.assets_utils import download_assets,download_ig_dataset,download_demo_data
-import shutil
-import igibson
 
 class ExplorationRLLearner(LearnerRL):
-    def __init__(self, env: gym.Env, lr=1e-5, ent_coef: float = 0.005, clip_range: float = 0.1,gamma: float = 0.99,
-                 n_steps: int = 2048, n_epochs: int = 4,iters=6_000_000, batch_size=64, lr_schedule='',
+    def __init__(self, env: gym.Env, lr=1e-5, ent_coef: float = 0.005, clip_range: float = 0.1, gamma: float = 0.99,
+                 n_steps: int = 2048, n_epochs: int = 4, iters=6_000_000, batch_size=64, lr_schedule='',
                  backbone='MultiInputPolicy', checkpoint_after_iter=20_000,
                  temp_path='', device='cuda', seed: int = None,
                  config_filename='', nr_evaluations: int = 75):
@@ -62,13 +55,11 @@ class ExplorationRLLearner(LearnerRL):
         if env is not None:
             
             self.stable_bl_agent = self._construct_agent(env=env, config_filename=config_filename)
-
-        
+     
     def download(self, path=None,
                  mode="checkpoint",
                  url=OPENDR_SERVER_URL + "control/multi_object_search/",
                  robot_name: str = None):
-
         
         assert mode in ('checkpoint', 'ig_requirements')
         
@@ -92,7 +83,7 @@ class ExplorationRLLearner(LearnerRL):
             download_demo_data()
             
             file_destinations = []
-            for d in ["fetch.urdf","locobot.urdf"]:
+            for d in ["fetch.urdf", "locobot.urdf"]:
                     
                 if d == "fetch.urdf":
                     filename = f"{d}"
@@ -120,21 +111,18 @@ class ExplorationRLLearner(LearnerRL):
                     
                     locobot_src = Path(path) / f"{d}"
                     dst = Path(igibson.assets_path) / "models/locobot/"
-                    shutil.copy(locobot_src, dst)
-                    
-                    
+                    shutil.copy(locobot_src, dst)        
 
             return file_destinations
         
-        
-
     def _construct_agent(self, env, config_filename):
         
         self.config = parse_config(config_filename)
         aux_bin_number = self.config.get("num_bins", 12)
         task_obs = env.observation_space['task_obs'].shape[0] - aux_bin_number
         policy_kwargs = dict(features_extractor_class=EgocentricEncoders)
-        return PPO_AUX(policy=self.backbone,
+        return PPO_AUX(
+            policy=self.backbone,
             env=env,
             ent_coef=self.ent_coef, 
             batch_size=self.batch_size, 
@@ -154,7 +142,6 @@ class ExplorationRLLearner(LearnerRL):
         Train the agent on the environment.
 
         :param env: gym.Env, optional, if specified use this env to train
-        :param val_env:  gym.Env, optional, if specified periodically evaluate on this env
         :param logging_path: str, path for logging and checkpointing
         :param silent: bool, disable verbosity
         :param verbose: bool, enable verbosity
@@ -170,20 +157,18 @@ class ExplorationRLLearner(LearnerRL):
 
         save_model_callback = SaveModel(check_freq=self.checkpoint_after_iter, log_dir=logging_path)
 
-        self.stable_bl_agent.learn(total_timesteps=self.iters,callback=save_model_callback)
-                                   
+        self.stable_bl_agent.learn(total_timesteps=self.iters, callback=save_model_callback)
 
         self.stable_bl_agent.save(os.path.join(logging_path, 'last_model'))
 
-        
-
-    def eval(self, env, name_prefix='', name_scene='',nr_evaluations: int = 75,deterministic_policy: bool = False):
+    def eval(self, env, name_prefix='', name_scene='', nr_evaluations: int = 75, deterministic_policy: bool = False):
         """
         Evaluate the agent on the specified environment.
 
         :param env: gym.Env, env to evaluate on
         :param name_prefix: str, name prefix for all logged variables
         :param nr_evaluations: int, number of episodes to evaluate over
+        :param deterministic_policy: bool, whether using the deterministic policy or not
         :return:
         """
         if nr_evaluations is None:
@@ -232,16 +217,11 @@ class ExplorationRLLearner(LearnerRL):
         :return: Whether load succeeded or not
         :rtype: bool
         """
-        
-
         if path == 'pretrained':
-            path = str(self.download(self.temp_path, mode="checkpoint",robot_name=self.config.get("robot", "Fetch")))
+            path = str(self.download(self.temp_path, mode="checkpoint", robot_name=self.config.get("robot", "Fetch")))
 
-        #self.stable_bl_agent.load(path)#,custom_objects={'data':None,'system_info.txt','_stable_baselines3_version','pytorch_variables.pth','policy.pth'})
-        self.stable_bl_agent.set_parameters(path,exact_match=False)
+        self.stable_bl_agent.set_parameters(path, exact_match=False)
         
-        
-
     def infer(self, batch, deterministic: bool = False):
         return self.stable_bl_agent.predict(batch, deterministic=deterministic)
 

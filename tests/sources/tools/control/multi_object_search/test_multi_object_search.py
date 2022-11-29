@@ -36,10 +36,12 @@ EVAL_CONFIG_FILE = str(Path(__file__).parent / 'test_config.yaml')
 def get_first_weight(learner):
     return list(learner.stable_bl_agent.get_parameters()['policy'].values())[0].clone()
 
+
 def set_seed(seed: int):
     torch.manual_seed(seed)
     np.random.seed(seed)
     random.seed(seed)
+
 
 class MultiObjectSearchTest(unittest.TestCase):
     learner = None
@@ -49,7 +51,13 @@ class MultiObjectSearchTest(unittest.TestCase):
         print("\n\n**********************************\nTEST Multi-Object-Search\n"
               "**********************************")
         set_seed(0)
-        cls.learner = ExplorationRLLearner(env=None, device=device, iters=TEST_ITERS, temp_path=str(TEMP_SAVE_DIR),config_filename=EVAL_CONFIG_FILE)
+        cls.learner = ExplorationRLLearner(
+            env=None, 
+            device=device, 
+            iters=TEST_ITERS, 
+            temp_path=str(TEMP_SAVE_DIR), 
+            config_filename=EVAL_CONFIG_FILE)
+
         cls.download_assets()
         cls.download_ckp()
         cls.tearDownClass()
@@ -58,11 +66,20 @@ class MultiObjectSearchTest(unittest.TestCase):
         if not TEMP_SAVE_DIR.exists():
             TEMP_SAVE_DIR.mkdir(parents=True, exist_ok=True)
         
-        cls.env = Monitor(cls.env,str(TEMP_SAVE_DIR))
+        cls.env = Monitor(cls.env, str(TEMP_SAVE_DIR))
         config = parse_config(EVAL_CONFIG_FILE)
-        cls.learner = ExplorationRLLearner(env=cls.env,lr=config.get("learning_rate", 0.0001), ent_coef=config.get("ent_coef", 0.005), clip_range=config.get("clip_range", 0.1),n_steps=config.get("rollout_buffer_size", 2048)\
-            , n_epochs=config.get("n_epochs", 4),batch_size=config.get("batch_size", 64),gamma=config.get("gamma", 0.99) \
-            ,device=device, iters=TEST_ITERS, temp_path=str(TEMP_SAVE_DIR),config_filename=EVAL_CONFIG_FILE)
+        cls.learner = ExplorationRLLearner(
+            env=cls.env, 
+            lr=config.get("learning_rate", 0.0001),
+            ent_coef=config.get("ent_coef", 0.005), 
+            clip_range=config.get("clip_range", 0.1),
+            n_steps=config.get("rollout_buffer_size", 2048),
+            n_epochs=config.get("n_epochs", 4),
+            batch_size=config.get("batch_size", 64),
+            gamma=config.get("gamma", 0.99),
+            device=device, iters=TEST_ITERS, 
+            temp_path=str(TEMP_SAVE_DIR),
+            config_filename=EVAL_CONFIG_FILE)
 
     @classmethod
     def tearDownClass(cls):
@@ -74,7 +91,6 @@ class MultiObjectSearchTest(unittest.TestCase):
         prereqs_folders = cls.learner.download(mode='ig_requirements')
         for file_dest in prereqs_folders:
             cls.assertTrue(Path(file_dest).exists, f"file could not be downloaded {file_dest}")
-    
 
     @classmethod
     def download_ckp(cls):
@@ -103,27 +119,24 @@ class MultiObjectSearchTest(unittest.TestCase):
       
         weights_before_fit = get_first_weight(cls.learner)
         cls.learner.fit()
-        cls.assertFalse(torch.equal(weights_before_fit, get_first_weight(cls.learner)),
-                         msg="Fit method did not alter model weights")
+        cls.assertFalse(
+                torch.equal(weights_before_fit, get_first_weight(cls.learner)),
+                msg="Fit method did not alter model weights")
 
-    
     def test_eval(cls):
         
         nr_evaluations = 2
-        metrics = cls.learner.eval(cls.env, nr_evaluations=nr_evaluations,name_scene="Rs")
+        metrics = cls.learner.eval(cls.env, nr_evaluations=nr_evaluations, name_scene="Rs")
         cls.assertTrue(len(metrics['episode_rewards']) == nr_evaluations, "Episode rewards have incorrect length.")
-        #cls.assertTrue((np.array(metrics['episode_rewards']) <= 0.0).all(), "Test reward not below 0.")
         cls.assertTrue((np.array(metrics['episode_lengths']) >= 0.0).all(), "Test episode lengths is negative")
     
     def test_eval_pretrained(cls):
         
         nr_evaluations = 3
         cls.learner.load('pretrained')
-        metrics = cls.learner.eval(cls.env, nr_evaluations=nr_evaluations,name_scene="Rs")
+        metrics = cls.learner.eval(cls.env, nr_evaluations=nr_evaluations, name_scene="Rs")
         success = metrics['metrics']['success']
         cls.assertTrue(success > 0.6, f"Success rate of pretrained model is only {success}")
-
-    
 
     def test_infer(cls):
         obs = cls.env.observation_space.sample()
@@ -138,12 +151,14 @@ class MultiObjectSearchTest(unittest.TestCase):
         cls.learner.save(os.path.join(TEMP_SAVE_DIR, 'initial_weights'))
         
         cls.learner.load('pretrained')
-        cls.assertFalse(torch.equal(weights_before_saving, get_first_weight(cls.learner)),
-                         msg="Load() did not alter model weights")
+        cls.assertFalse(
+            torch.equal(weights_before_saving, get_first_weight(cls.learner)),
+            msg="Load() did not alter model weights")
 
         cls.learner.load(os.path.join(TEMP_SAVE_DIR, 'initial_weights'))
-        cls.assertTrue(torch.equal(weights_before_saving, get_first_weight(cls.learner)),
-                        msg="Load did not restore initial weights correctly")
+        cls.assertTrue(
+            torch.equal(weights_before_saving, get_first_weight(cls.learner)),
+            msg="Load did not restore initial weights correctly")
 
         # Remove temporary files
         try:
@@ -154,3 +169,4 @@ class MultiObjectSearchTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+    

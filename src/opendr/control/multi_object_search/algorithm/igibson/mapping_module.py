@@ -159,9 +159,9 @@ class MappingModule():
             self.aux_action = softmax(action['aux_angle'])
 
             p_ax = self.world2map(euler_mat.dot(np.array(self.aux_points).T).T + camera_translation)
-            for i, p in enumerate(p_ax):
-                img_copy[int(p[1]) - 2:int(p[1]) + 2, int(p[0]) - 2:int(p[0]) + 2, 1::] = self.colors['aux_pred'][1::]
-                img_copy[int(p[1]) - 2:int(p[1]) + 2, int(p[0]) - 2:int(p[0]) + 2, 0] = self.colors['aux_pred'][0] * \
+            for i, py in enumerate(p_ax):
+                img_copy[int(py[1]) - 2:int(py[1]) + 2, int(py[0]) - 2:int(py[0]) + 2, 1::] = self.colors['aux_pred'][1::]
+                img_copy[int(py[1]) - 2:int(py[1]) + 2, int(py[0]) - 2:int(py[0]) + 2, 0] = self.colors['aux_pred'][0] * \
                     self.aux_action[i]
 
         pos = self.rob_pose
@@ -200,7 +200,6 @@ class MappingModule():
         depth = depth.squeeze()
         rows, cols = depth.shape
 
-        px, py = (rows / 2, cols / 2)
         hfov = self.cam_fov / 360. * 2. * np.pi
         fx = rows / (2. * np.tan(hfov / 2.))
 
@@ -261,14 +260,24 @@ class MappingModule():
 
     def load_miscellaneous_2(self):
         # Images have BGR format
-        # Sofa colors get assigned to sofa category and also for "unknown" category, since the original unknown colors had too many similarities with
-        self.colors = {'walls': np.array([0, 255, 0]), 'free_space': np.array([255, 0, 0]),
-                       'trace': np.array([164, 0, 255]), 'circle': np.array([0, 128, 255]), 'sofa': np.array([95, 190, 45]), 'object_found': np.array([249, 192, 203]),
-                       'sink': np.array([13, 66, 220]), 'forbidden_door': np.array([77, 12, 128]),
-                       'aux_pred': np.array([192, 25, 79]),
-                       'object_colors': [np.array([64, 64, 64]), np.array([32, 152, 196]), np.array([12, 48, 96]),
-                                         np.array([102, 32, 77]), np.array([126, 55, 133]), np.array([140, 109, 84])], 'door_colors': np.array(
-            [np.array([81, 255, 222]), np.array([91, 255, 144]), np.array([117, 255, 106]), np.array([199, 255, 27])])}
+        # Sofa colors get assigned to sofa category and also for "unknown" category, 
+        # since the original unknown colors had too many similarities with desired object categories.
+        self.colors = {
+                    'walls': np.array([0, 255, 0]), 
+                    'free_space': np.array([255, 0, 0]),
+                    'trace': np.array([164, 0, 255]), 
+                    'circle': np.array([0, 128, 255]), 
+                    'sofa': np.array([95, 190, 45]), 
+                    'object_found': np.array([249, 192, 203]),
+                    'sink': np.array([13, 66, 220]), 
+                    'forbidden_door': np.array([77, 12, 128]),
+                    'aux_pred': np.array([192, 25, 79]),
+                    'object_colors': [
+                                    np.array([64, 64, 64]), np.array([32, 152, 196]), np.array([12, 48, 96]),
+                                    np.array([102, 32, 77]), np.array([126, 55, 133]), np.array([140, 109, 84])], 
+                    'door_colors': np.array([
+                                        np.array([81, 255, 222]), np.array([91, 255, 144]), 
+                                        np.array([117, 255, 106]), np.array([199, 255, 27])])}
 
         self.aux_prob_counter = 0
 
@@ -389,8 +398,6 @@ class MappingModule():
                                        'object_dist': 1.4, 'doors': ['door_54', 'door_52'],
                                        'forbidden_doors': ['door_54'], "door_dist": 1.0, "map_size": 450}  #
 
-
-
         self.map_settings['Ihlen_0_int'] = {'grid_offset': np.array([5.5, 3.0, 15.1]),
                                             'grid_spacing': np.array([self.grid_res, self.grid_res, 0.1]), 'offset': 0,
                                             'object_dist': 2.0, 'door_dist': 1.4,
@@ -411,8 +418,9 @@ class MappingModule():
                                             'forbidden_doors': ['door_86', 'door_91'],
                                             "map_size": 500}  
 
-        #new settings
-        self.map_settings['Rs'] = {'grid_offset': np.array([6.0, 5.5, 15.1]),
-                                       'grid_spacing': np.array([self.grid_res, self.grid_res, 0.1]), 'offset': 0,
-                                       'object_dist': 1.4, 'doors': ['door_54', 'door_52'],
-                                       'forbidden_doors': ['door_54'], "door_dist": 1.0, "map_size": 450}  #
+        # Test-demo Settings
+        self.map_settings['Rs'] = {
+                                'grid_offset': np.array([6.0, 5.5, 15.1]),
+                                'grid_spacing': np.array([self.grid_res, self.grid_res, 0.1]), 'offset': 0,
+                                'object_dist': 1.4, 'doors': ['door_54', 'door_52'],
+                                'forbidden_doors': ['door_54'], "door_dist": 1.0, "map_size": 450}

@@ -203,7 +203,6 @@ As described above, follow the download instructions.
 
 #### Notes
 
-##### HSR
 The iGibson simulator might crash, when evaluating multiple envrionments and use the gui mode.
 
 #### References

@@ -45,8 +45,7 @@ class MultiObjectEnv(BaseFunctions):
         :param automatic_reset: whether to automatic reset after an episode finishes
         """
         self.mapping = MappingModule(config_file, scene_id)
-        
-        
+           
         self.mix_sample = mix_sample
         super(MultiObjectEnv, self).__init__(
             config_file=config_file,
@@ -72,7 +71,6 @@ class MultiObjectEnv(BaseFunctions):
             self.resample_task = self.config.get('resample_task', True)
 
         self.max_aux_episodic_prob = self.config.get('max_aux_episodic_prob', 0.72)
-        
         
         self.SR_rate = []
 
@@ -156,7 +154,6 @@ class MultiObjectEnv(BaseFunctions):
         if len(scan_modalities) > 0:
             sensors["scan_occ"] = ScanSensor(self, scan_modalities)
 
-        task_ob = observation_space["task_obs"]
         observation_space = OrderedDict()
         self.last_action_obs = self.config.get('last_action_obs', False)
         self.use_rgb_depth = self.config.get('rgb_depth', False)
@@ -373,8 +370,9 @@ class MultiObjectEnv(BaseFunctions):
 
             tmp = self.global_map.copy()
 
-            # w_ax = self.world2map(euler_mat.dot(self.mapping.aux_points[np.argmax(self.mapping.aux_action)].T).T + camera_translation)
-
+            # For Visualizing the angle on the static map.
+            # w_ax = self.world2map(euler_mat.dot(self.mapping.aux_points[np.argmax(self.mapping.aux_action)].T).T
+            # + camera_translation)
             # tmp[int(w_ax[1])-5:int(w_ax[1])+5,int(w_ax[0])-5:int(w_ax[0])+5] = self.aux_pred
 
             cv2.imshow("GLOBAL NO POLICY INPUT", tmp)
@@ -559,8 +557,7 @@ class MultiObjectEnv(BaseFunctions):
                 self.reload_model(scene_id)
                 self.scene_reset_counter = 0
                 self.last_scene_id = scene_id
-
-        
+  
         self.scene_reset_counter += 1
         self.mapping.aux_prob_counter += 1
 
@@ -572,13 +569,18 @@ class MultiObjectEnv(BaseFunctions):
         
         if self.test_demo:
            
-            #just a elementary test on the Demo-scene Rs (not to confuse with Rs_int)
-            self.land(self.robots[0],[0,0,0],[0,0,0])
+            # Elementary test on the Demo-scene Rs (not to confuse with Rs_int)
+            self.land(self.robots[0], [0, 0, 0], [0, 0, 0])
             orn = np.array([0, 1, 1.5])
-            positions_cracker = [[0.4,-1.0,0.0],[0.4,-2.0,0.0],[0.4,-3.0,0.0],[0.95,-3.1,0.0],\
-            [0.5,1.0,0.0],[1.0,1.0,0.0]]
+            positions_cracker = [
+                [0.4, -1.0, 0.0], 
+                [0.4, -2.0, 0.0], 
+                [0.4, -3.0, 0.0], 
+                [0.95, -3.1, 0.0],
+                [0.5, 1.0, 0.0], 
+                [1.0, 1.0, 0.0]]
             self.task.target_pos_list = np.array(positions_cracker)
-            for i,cracker_list in enumerate(self.task.interactive_objects):
+            for i, cracker_list in enumerate(self.task.interactive_objects):
                 pos = positions_cracker[i]
                 self.land(cracker_list[0], pos, orn)
                 pos2 = pos.copy()
@@ -595,7 +597,7 @@ class MultiObjectEnv(BaseFunctions):
         self.global_map = np.zeros((self.mapping.map_size[0], self.mapping.map_size[1], 3), dtype=np.uint8) * 255
         
         if self.test_demo:
-            self.global_map[:,:,:] = self.mapping.colors['walls']
+            self.global_map[:, :, :] = self.mapping.colors['walls']
 
         self.seg_mask = (state['seg'] * 255).astype(int)
 
